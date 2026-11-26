@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Waking Macs that stopped checking in | Davide Caputo</title>
+<meta name="description" content="A small tool that redeploys the Jamf framework on quiet Macs, why it previews first, why it never retries the redeploy, and where the logic lives now.">
+<meta name="robots" content="index,follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffb4d2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#140d18" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://davidecaputo.com/blog/waking-macs-that-stopped-checking-in-to-jamf.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Davide Caputo">
+<meta property="og:title" content="Waking Macs that stopped checking in | Davide Caputo">
+<meta property="og:description" content="A small tool that redeploys the Jamf framework on quiet Macs, why it previews first, why it never retries the redeploy, and where the logic lives now.">
+<meta property="og:url" content="https://davidecaputo.com/blog/waking-macs-that-stopped-checking-in-to-jamf.html">
+<meta property="og:image" content="https://davidecaputo.com/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Davide Caputo, Senior Technical Architect">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Waking Macs that stopped checking in | Davide Caputo">
+<meta name="twitter:description" content="A small tool that redeploys the Jamf framework on quiet Macs, why it previews first, why it never retries the redeploy, and where the logic lives now.">
+<meta name="twitter:image" content="https://davidecaputo.com/assets/og.png">
+<link rel="preload" href="../assets/fonts/host-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script src="../assets/theme.js"></script>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/search-index.js" defer></script>
+<script src="../assets/site.js" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://davidecaputo.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://davidecaputo.com/blog/index.html"},{"@type":"ListItem","position":3,"name":"Waking Macs that stopped checking in","item":"https://davidecaputo.com/blog/waking-macs-that-stopped-checking-in-to-jamf.html"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","headline":"Waking Macs that stopped checking in","datePublished":"2026-11-26","author":{"@type":"Person","name":"Davide Caputo","url":"https://davidecaputo.com/"},"description":"A small tool that redeploys the Jamf framework on quiet Macs, why it previews first, why it never retries the redeploy, and where the logic lives now.","keywords":"jamf, macos, mdm, python","mainEntityOfPage":{"@type":"WebPage","@id":"https://davidecaputo.com/blog/waking-macs-that-stopped-checking-in-to-jamf.html"}}
+</script>
+</head>
+<body class="" data-root="../">
+<div id="page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><a class="home" href="../index.html">Davide Caputo</a><div class="tools"><button class="sbtn" type="button" data-open-search aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span><kbd class="kh">/</kbd></button></div><nav class="pills" aria-label="Main"><a href="../work.html">Work</a><a href="../about.html">About</a><a href="../blog/index.html" aria-current="page">Blog</a><a href="../projects.html">Projects</a></nav></header>
+<div class="card"><main id="main" class="body" tabindex="-1">
+<h1>Waking Macs that stopped checking in</h1>
+<p class="back"><a href="index.html">← All posts</a></p><p class="meta"><time datetime="2026-11-26">26 Nov 2026</time></p><ul class="chips" aria-label="Tags"><li>jamf</li><li>macos</li><li>mdm</li><li>python</li></ul>
+<div class="prose post"><p>Some Macs go quiet: MDM commands queue and nothing happens. A Mac that sleeps through its check-ins, or whose Jamf framework has gone stale, stops acting on policies and commands. The Jamf Pro API has a call that redeploys the framework, but for forty Macs that means forty computer ID lookups and forty requests by hand, with no preview and no tally of which ones took. Jamf WakeUp Call is the small Python tool I wrote to do that for me.</p>
+<h2>Three ways to pick targets</h2>
+<p>You give it a dynamic group, a single serial number or a file of serials with one per line. It looks the computers up, shows you the list, sends the commands and prints one result per computer, with the command UUID Jamf Pro returns.</p>
+<h2>Dry run first</h2>
+<p>The tool has a dry run that lists what would happen and sends nothing. Every mode also asks yes or no before it sends, unless you pass --skip-confirmation. The README is firm that a first test should never be on production Macs, and suggests trying one serial first:</p>
+<pre tabindex="0"><code>python3 -m src.main C02EXAMPLE001 --dry-run
+python3 -m src.main --group-id 42 --dry-run
+python3 -m src.main --group-id 42</code></pre>
+<p>The first line previews one computer, the second previews a group and sends nothing, and the third asks for confirmation and then sends.</p>
+<h2>Reads retry, the redeploy does not</h2>
+<p>Reads retry up to 3 times with backoff on 429 and 5xx responses over HTTPS. The redeploy POST is never retried. The reason is simple: that way no command is sent twice. If a redeploy fails, the failure shows up as a line in the results rather than a silent second attempt.</p>
+<h2>It only queues the command</h2>
+<p>The tool never talks to a Mac directly. It asks Jamf Pro to queue the redeploy, and Jamf Pro delivers it as an MDM command over APNs the next time the Mac is reachable. It cannot see whether a Mac received the command, so a Mac that stays offline, or cannot reach Apple&#x27;s push service, still does not wake until it can. That is the one trade-off I would want anyone to know before they use it.</p>
+<h2>Where the logic lives now</h2>
+<p>This repository is superseded. The same wake-up and redeploy logic now lives in Jamf-Snipe-IT-Suite as the wakeup module, with retries and SSM-backed credentials. The README says to use that for new work, and that the original repository is kept for reference and receives fixes only.</p></div>
+<p class="back"><a href="index.html">← All posts</a></p>
+</main>
+<footer class="band"><div class="who"><a class="role" href="../work.html">Senior Technical Architect</a><span>HM Revenue and Customs, over 10 years in identity and cloud</span></div><div class="band-r"><button class="kbtn" type="button" data-open-help>Keyboard</button><button class="tbtn" type="button" data-theme-toggle aria-label="Theme: System. Switch to Light."><svg class="i-system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg><svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><span class="tl-label" data-theme-label>System</span></button></div></footer></div>
+</div>
+<div class="ov" id="search-ov" hidden><div class="cp" role="dialog" aria-modal="true" aria-label="Search" data-palette data-overlay data-idp="o" data-root="../"><div class="q" role="search" aria-label="Site search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" id="o-in" role="combobox" aria-expanded="true" aria-controls="o-list" aria-activedescendant="o-r0" aria-autocomplete="list" aria-label="Search posts and projects" placeholder="Search posts and projects" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button class="esc" type="button" data-clear aria-label="Clear search">esc</button></div><div class="res" tabindex="-1"><div class="list" id="o-list" role="listbox" aria-label="Results"> </div><p class="empty" data-empty hidden></p></div><p class="sr" role="status" aria-live="polite" data-live></p><div class="hints"><span><kbd>↑</kbd> <kbd>↓</kbd> to move</span><span><kbd>enter</kbd> to open</span><span><kbd>esc</kbd> to close</span></div></div></div><div class="ov" id="help-ov" hidden><div class="cp help" role="dialog" aria-modal="true" aria-labelledby="help-h"><div class="hb"><h2 id="help-h">Keyboard</h2><button class="esc" type="button" data-close aria-label="Close keyboard help">esc</button></div><dl class="keys"><div><dt><kbd>/</kbd></dt><dd>Search</dd></div><div><dt><kbd>Cmd or Ctrl + K</kbd></dt><dd>Search</dd></div><div><dt><kbd>Up, Down, Home, End</kbd></dt><dd>Move through results</dd></div><div><dt><kbd>Page Up, Page Down</kbd></dt><dd>Jump five results</dd></div><div><dt><kbd>Enter</kbd></dt><dd>Open the result</dd></div><div><dt><kbd>Cmd or Ctrl + Enter</kbd></dt><dd>Open in a new tab</dd></div><div><dt><kbd>g then w, a, b or p</kbd></dt><dd>Go to Work, About, Blog or Projects</dd></div><div><dt><kbd>t</kbd></dt><dd>Change theme</dd></div><div><dt><kbd>?</kbd></dt><dd>This list</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Clear the search or close</dd></div></dl></div></div>
+</body>
+</html>

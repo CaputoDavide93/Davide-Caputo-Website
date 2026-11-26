@@ -21,3 +21,4 @@ credentials.json
 service-account*.json
 google-services.json
 GoogleService-Info.plist
+__pycache__/
