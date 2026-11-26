@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What did a leaver do in AWS? | Davide Caputo</title>
+<meta name="description" content="Why I wrote a read-only tool that collects a leaver&#x27;s CloudTrail activity across every account into one offline report, and where its limits are.">
+<meta name="robots" content="index,follow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffb4d2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#140d18" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://davidecaputo.com/blog/what-did-a-leaver-do-in-aws.html">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Davide Caputo">
+<meta property="og:title" content="What did a leaver do in AWS? | Davide Caputo">
+<meta property="og:description" content="Why I wrote a read-only tool that collects a leaver&#x27;s CloudTrail activity across every account into one offline report, and where its limits are.">
+<meta property="og:url" content="https://davidecaputo.com/blog/what-did-a-leaver-do-in-aws.html">
+<meta property="og:image" content="https://davidecaputo.com/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Davide Caputo, Senior Technical Architect">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="What did a leaver do in AWS? | Davide Caputo">
+<meta name="twitter:description" content="Why I wrote a read-only tool that collects a leaver&#x27;s CloudTrail activity across every account into one offline report, and where its limits are.">
+<meta name="twitter:image" content="https://davidecaputo.com/assets/og.png">
+<link rel="preload" href="../assets/fonts/host-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script src="../assets/theme.js"></script>
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/search-index.js" defer></script>
+<script src="../assets/site.js" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://davidecaputo.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://davidecaputo.com/blog/index.html"},{"@type":"ListItem","position":3,"name":"What did a leaver do in AWS?","item":"https://davidecaputo.com/blog/what-did-a-leaver-do-in-aws.html"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","headline":"What did a leaver do in AWS?","datePublished":"2026-11-26","author":{"@type":"Person","name":"Davide Caputo","url":"https://davidecaputo.com/"},"description":"Why I wrote a read-only tool that collects a leaver's CloudTrail activity across every account into one offline report, and where its limits are.","keywords":"aws, cloudtrail, offboarding, security, python","mainEntityOfPage":{"@type":"WebPage","@id":"https://davidecaputo.com/blog/what-did-a-leaver-do-in-aws.html"}}
+</script>
+</head>
+<body class="" data-root="../">
+<div id="page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><a class="home" href="../index.html">Davide Caputo</a><div class="tools"><button class="sbtn" type="button" data-open-search aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span><kbd class="kh">/</kbd></button></div><nav class="pills" aria-label="Main"><a href="../work.html">Work</a><a href="../about.html">About</a><a href="../blog/index.html" aria-current="page">Blog</a><a href="../projects.html">Projects</a></nav></header>
+<div class="card"><main id="main" class="body" tabindex="-1">
+<h1>What did a leaver do in AWS?</h1>
+<p class="back"><a href="index.html">← All posts</a></p><p class="meta"><time datetime="2026-11-26">26 Nov 2026</time></p><ul class="chips" aria-label="Tags"><li>aws</li><li>cloudtrail</li><li>offboarding</li><li>security</li><li>python</li></ul>
+<div class="prose post"><p>When an engineer leaves, someone has to answer one question: did they leave anything behind, and did they touch anything on the way out? In AWS that means searching CloudTrail in every account and region, reading request parameters for trust policies, public snapshots and new keys, and working out what still exists. By hand it is slow, and it is easy to miss an account. I wrote AWS Offboarding Audit to do that review in one run.</p>
+<h2>What it collects and checks</h2>
+<p>The tool discovers every account your IAM Identity Center sign-in reaches and collects the person&#x27;s CloudTrail events from each one. It flags the changes that can give lasting access or destroy something. The built-in checks cover:</p>
+<ul><li>external trust</li><li>wildcard policies</li><li>public resources</li><li>long-lived keys</li><li>open security groups</li><li>destructive lifecycle rules</li><li>logging changes</li></ul>
+<p>It also separates activity during the notice period from activity after the last working day. An optional step checks whether a flagged change still exists.</p>
+<h2>Read-only by design</h2>
+<p>Every AWS call the project makes reads state and none changes it. The README lists them all. They are the IAM Identity Center calls ListAccounts, ListAccountRoles and GetRoleCredentials, CloudTrail LookupEvents and GetTrailStatus, a handful of Describe, Get, List and Head calls for IAM, EC2, RDS, KMS, Lambda and S3, and the CloudTrail Lake StartQuery and GetQueryResults pair. The README says there is no Create, Put, Delete, Update, Terminate, Modify, Attach, Detach or Revoke call anywhere in the code, so running it cannot alter, disable or delete anything in your accounts.</p>
+<p>Three things do reach beyond AWS: the TrailDiscover catalogue, which is downloaded at a pinned commit and checked by SHA-256 (and skipped with --no-enrich), an external AI service that is used only if you pass --analyze, and Google Fonts, which the browser fetches when it opens the report.</p>
+<h2>The 90-day limit</h2>
+<p>By default the tool works from CloudTrail Event History, which holds 90 days of management events only. Longer ranges and data events need CloudTrail Lake. This matters when you plan an offboarding: the evidence you can see is the evidence that is still there.</p>
+<h2>Ratings are not verdicts</h2>
+<p>The dashboard gives each item a review priority from 1 to 10. Those ratings are priorities for a human to look at. They are not findings of intent, and the plain-language assessments do not claim to infer why someone did something.</p>
+<h2>One offline file</h2>
+<p>The output is one HTML report that opens locally, with Markdown and JSON alongside. It starts in plain English for HR or an IT lead, and a switch reveals the technical detail. You can see a fully synthetic example in the repository before you run anything.</p>
+<p>A real run starts with a preflight, which lists the accounts and writes the plan without querying CloudTrail:</p>
+<pre tabindex="0"><code>aws sso login --sso-session &lt;your-session-name&gt;
+.venv/bin/python src/aws_offboarding_dashboard.py --config audit-config.yaml --preflight</code></pre>
+<p>When the account list is right, you drop --preflight and add --user, --notice-date, --last-day and --out. If a collection is interrupted, --resume carries on from the checkpoint.</p>
+<p>The code is on GitHub as AWS-Offboarding-Audit.</p></div>
+<p class="back"><a href="index.html">← All posts</a></p>
+</main>
+<footer class="band"><div class="who"><a class="role" href="../work.html">Senior Technical Architect</a><span>HM Revenue and Customs, over 10 years in identity and cloud</span></div><div class="band-r"><button class="kbtn" type="button" data-open-help>Keyboard</button><button class="tbtn" type="button" data-theme-toggle aria-label="Theme: System. Switch to Light."><svg class="i-system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg><svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><span class="tl-label" data-theme-label>System</span></button></div></footer></div>
+</div>
+<div class="ov" id="search-ov" hidden><div class="cp" role="dialog" aria-modal="true" aria-label="Search" data-palette data-overlay data-idp="o" data-root="../"><div class="q" role="search" aria-label="Site search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" id="o-in" role="combobox" aria-expanded="true" aria-controls="o-list" aria-activedescendant="o-r0" aria-autocomplete="list" aria-label="Search posts and projects" placeholder="Search posts and projects" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button class="esc" type="button" data-clear aria-label="Clear search">esc</button></div><div class="res" tabindex="-1"><div class="list" id="o-list" role="listbox" aria-label="Results"> </div><p class="empty" data-empty hidden></p></div><p class="sr" role="status" aria-live="polite" data-live></p><div class="hints"><span><kbd>↑</kbd> <kbd>↓</kbd> to move</span><span><kbd>enter</kbd> to open</span><span><kbd>esc</kbd> to close</span></div></div></div><div class="ov" id="help-ov" hidden><div class="cp help" role="dialog" aria-modal="true" aria-labelledby="help-h"><div class="hb"><h2 id="help-h">Keyboard</h2><button class="esc" type="button" data-close aria-label="Close keyboard help">esc</button></div><dl class="keys"><div><dt><kbd>/</kbd></dt><dd>Search</dd></div><div><dt><kbd>Cmd or Ctrl + K</kbd></dt><dd>Search</dd></div><div><dt><kbd>Up, Down, Home, End</kbd></dt><dd>Move through results</dd></div><div><dt><kbd>Page Up, Page Down</kbd></dt><dd>Jump five results</dd></div><div><dt><kbd>Enter</kbd></dt><dd>Open the result</dd></div><div><dt><kbd>Cmd or Ctrl + Enter</kbd></dt><dd>Open in a new tab</dd></div><div><dt><kbd>g then w, a, b or p</kbd></dt><dd>Go to Work, About, Blog or Projects</dd></div><div><dt><kbd>t</kbd></dt><dd>Change theme</dd></div><div><dt><kbd>?</kbd></dt><dd>This list</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Clear the search or close</dd></div></dl></div></div>
+</body>
+</html>

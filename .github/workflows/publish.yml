@@ -1,0 +1,42 @@
+name: Publish
+
+# A post added or edited in the GitHub web editor (content/posts/*.md) rebuilds the
+# generated pages and commits them back to main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content/**"
+      - "tools/build_site.py"
+      - "tools/site_data.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    # The rebuild commit is made by the bot; never answer it.
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Build the pages
+        run: python3 tools/build_site.py
+      - name: Commit the generated pages
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Generated pages already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: rebuild site pages"
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"

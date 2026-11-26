@@ -3,6 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+    # A post added in the GitHub web editor is rebuilt by publish.yml; checking the
+    # half-built commit would only show a red run first.
+    paths-ignore:
+      - "content/**"
   pull_request:
 
 permissions:
@@ -15,5 +19,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Diagram is current
         run: python3 tools/gen_diagram.py --check
+      - name: Generated pages are current
+        run: python3 tools/build_site.py --check
       - name: Site rules hold
         run: python3 tests/check_site.py

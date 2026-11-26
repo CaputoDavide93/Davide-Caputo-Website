@@ -35,12 +35,16 @@ This repository is the public personal website of Davide Caputo, served by GitHu
 ## Commands
 
 - Preview: `python3 -m http.server 8000`, then open `http://localhost:8000/`.
+- Generate the pages: `python3 tools/build_site.py`. Content is in `tools/site_data.py`.
+- Pages are current: `python3 tools/build_site.py --check`.
 - Rules: `python3 tests/check_site.py`.
 - Diagram check: `python3 tools/gen_diagram.py --check` (write with `python3 tools/gen_diagram.py`).
+- Add a blog post, on GitHub (primary): add `content/posts/YYYY-MM-DD-slug.md` (front matter `title`, `summary`, `tags`, optional `draft: true`) in the web editor and commit to `main`; `.github/workflows/publish.yml` runs the generator and commits the rebuilt pages as `github-actions[bot]`. Locally (optional): `python3 tools/new_post.py "Title"`, edit, `python3 tools/build_site.py`, commit the `.md` and the generated files.
 
 ## Layout
 
-- `index.html` is the whole page; `assets/site.css`, `assets/site.js`, `assets/favicon.svg` and `assets/fonts/` (Host Grotesk and JetBrains Mono, self-hosted).
+- The pages are generated: `index.html`, `work.html`, `about.html`, `projects.html`, `blog/index.html`, `blog/<slug>.html`, `404.html` and `sitemap.xml`. Posts live in `content/posts/` as Markdown; `tools/site_data.py` holds the rest of the content and `tools/build_site.py` the templates and the Markdown converter. `publish.yml` rebuilds the pages when `content/`, the generator or `site_data.py` change on `main`.
+- `assets/`: `site.css`, `site.js`, `theme.js`, `search-index.js` (generated), `og.png`, `favicon.svg` and `fonts/` (Host Grotesk and JetBrains Mono, self-hosted).
 - `tests/check_site.py` pins the owner's rules. `tools/gen_diagram.py` writes `docs/assets/architecture-{light,dark}.svg`.
 - `.nojekyll` keeps Pages from running Jekyll.
 
@@ -49,11 +53,14 @@ This repository is the public personal website of Davide Caputo, served by GitHu
 - **No personal contact details on the page** (decided 2026-11-26): no phone number, e-mail address, `mailto:` or `tel:` link, home town or citizenship. Contact is through LinkedIn. `tests/check_site.py` enforces it; never weaken the list to make a change pass.
 - Facts come from the owner's CV and public GitHub repositories only. Nothing is invented: no figures, clients, quotes or awards. A new employer, date or certificate comes from the owner.
 - One heading per idea, plain words, sentence case. One accent colour, flat grounds, no photographs of people unless the owner supplies them. No cookies, analytics or third-party requests; fonts stay self-hosted.
-- Pull requests only; the gate is the two commands above plus a look at 1440, 1024, 768 and 390 px.
+- **Keyboard access and SEO are part of the owner's standards.** Never remove the skip link, the focus ring, `aria-current`, button names or image `alt`/size to make a change pass. Every page keeps a unique title and description, canonical, Open Graph and JSON-LD; `404.html` stays `noindex` and out of the sitemap. `tests/check_site.py` enforces these and the size budgets.
+- **Dark theme.** Colours live only in the token block of `assets/site.css` (light on `:root`, dark under `prefers-color-scheme` and `[data-theme="dark"]`); no hard-coded colours elsewhere. The one blocking script is `assets/theme.js`, in `<head>`, tiny, local and inert.
+- Pull requests only; the gate is the three commands (generator `--check`, rules, diagram) plus a look at 1440, 1024, 768 and 390 px in both themes.
 
 ## Do not touch
 
 - `docs/assets/architecture-*.svg` by hand: the generator rewrites them.
+- The generated HTML files (`index.html`, `work.html`, `about.html`, `projects.html`, `404.html`, everything under `blog/`), `sitemap.xml` and `assets/search-index.js`: edit `tools/site_data.py` or `tools/build_site.py`, then run `python3 tools/build_site.py`. `python3 tools/build_site.py --check` fails on a hand edit.
 - The domain `davidecaputo.com` and the `CNAME` file once Pages is enabled: they are the site's public address.
 
 ## Secrets
